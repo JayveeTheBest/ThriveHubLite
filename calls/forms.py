@@ -1,5 +1,5 @@
 from django import forms
-from .models import Caller, CallSession
+from .models import Caller, CallSession, ReferralContact
 
 
 class CallerForm(forms.ModelForm):
@@ -53,4 +53,26 @@ class CallSessionForm(forms.ModelForm):
         self.fields['other_person_location'].required = False
         self.fields['date'].required = False
         self.fields['shift'].required = False
+
+
+class ReferralContactForm(forms.ModelForm):
+    class Meta:
+        model = ReferralContact
+        fields = [
+            'first_name', 'last_name', 'gender', 'designation', 'location',
+            'phone', 'phone_2', 'phone_3',
+            'email', 'alt_email'
+        ]
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'gender': forms.RadioSelect(attrs={'class': 'form-check-input'}),
+            'designation': forms.RadioSelect(attrs={'class': 'form-check-input'}),
+            'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone_2': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone_3': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'alt_email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
 

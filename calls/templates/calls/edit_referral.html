@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container mt-4">
+  <h2 class="mb-4">Edit Referral Contact</h2>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "calls/_referral_form.html" %}
+    <button type="submit" class="btn btn-primary mt-3">Save Changes</button>
+    <a href="{% url 'referrals' %}" class="btn btn-secondary mt-3">Cancel</a>
+  </form>
+</div>
+
+{% endblock %}

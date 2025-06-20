@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load risk_tags %}
+{% block content %}
+
+<div class="container mt-4">
+  <h2 class="mb-4">Add Referral</h2>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <!-- Basic Fields -->
+    <div class="row g-3">
+      <div class="col-md-6">
+        <div class="mb-3">{{ form.first_name.label_tag }}{{ form.first_name }}</div>
+      </div>
+      <div class="col-md-6">
+        <div class="mb-3">{{ form.last_name.label_tag }}{{ form.last_name }}</div>
+      </div>
+    </div>
+
+    <div class="row g-3">
+    <!-- Gender field as radio -->
+      <fieldset class="col-md-6">
+        <legend class="col-form-label col-sm-2 pt-0">{{ form.gender.label }}</legend>
+        <div class="col-sm-10">
+          {% for radio in form.gender %}
+            <div class="form-check">
+              {{ radio.tag }}
+              <label class="form-check-label" for="{{ radio.id_for_label }}">
+                {{ radio.choice_label }}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <!-- Designation field as radio -->
+      <fieldset class="col-md-6">
+        <legend class="col-form-label col-sm-2 pt-0">{{ form.designation.label }}</legend>
+        <div class="col-sm-10">
+          {% for radio in form.designation %}
+            <div class="form-check">
+              {{ radio.tag }}
+              <label class="form-check-label" for="{{ radio.id_for_label }}">
+                {{ radio.choice_label }}
+              </label>
+            </div>
+          {% endfor %}
+        </div>
+      </fieldset>
+    </div>
+
+    <div class="row g-3" style="margin-top: 0.5rem;">
+      <div class="col-md-4">
+        <div class="mb-3">{{ form.location.label_tag }}{{ form.location }}</div>
+      </div>
+      <div class="col-md-4">
+        <!-- Phone Numbers -->
+        <div class="mb-3">
+          <label>Phone Numbers</label>
+          <div class="d-flex align-items-center gap-2">
+            {{ form.phone }}
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="add-phone" data-bs-toggle="tooltip" title="Add more phone numbers">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm d-none" id="hide-phone" data-bs-toggle="tooltip" title="Hide extra fields">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <div id="phone-2" class="mt-2" style="display: none;">{{ form.phone_2 }}</div>
+          <div id="phone-3" class="mt-2" style="display: none;">{{ form.phone_3 }}</div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <!-- Emails -->
+        <div class="mb-3">
+          <label>Email Addresses</label>
+          <div class="d-flex align-items-center gap-2">
+            {{ form.email }}
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="add-email" data-bs-toggle="tooltip" title="Add alternative email">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </div>
+          <div id="alt-email" class="mt-2" style="display: none;">{{ form.alt_email }}</div>
+        </div>
+      </div>
+    </div>
+
+
+    <button type="submit" class="btn btn-primary mt-3">Save</button>
+  </form>
+
+
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const phoneBtn = document.getElementById("add-phone");
+    const phone2 = document.getElementById("phone-2");
+    const phone3 = document.getElementById("phone-3");
+
+    phoneBtn.addEventListener("click", function () {
+      if (phone2.style.display === "none") {
+        $(phone2).slideDown();
+      } else if (phone3.style.display === "none") {
+        $(phone3).slideDown();
+        phoneBtn.style.display = "none"; // hide button after last phone field
+      }
+    });
+
+    const emailBtn = document.getElementById("add-email");
+    const altEmail = document.getElementById("alt-email");
+
+    emailBtn.addEventListener("click", function () {
+      if (altEmail.style.display === "none") {
+        $(altEmail).slideDown();
+        emailBtn.style.display = "none"; // only one extra email allowed
+      }
+    });
+
+    // Tooltip setup
+    var tooltips = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltips.forEach(function (tooltipTriggerEl) {
+      new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  });
+</script>
+
+
+
+
+
+{% endblock %}

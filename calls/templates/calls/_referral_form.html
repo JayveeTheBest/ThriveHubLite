@@ -1,0 +1,199 @@
+{% comment %}
+  Partial form for ReferralContact — reusable in Add and Edit modals.
+  Requires 'form' and 'form_prefix' to be passed when included.
+{% endcomment %}
+
+<div class="row g-3">
+  <!-- First and Last Name -->
+  <div class="col-md-6">
+    <div class="mb-3">{{ form.first_name.label_tag }}{{ form.first_name }}</div>
+  </div>
+  <div class="col-md-6">
+    <div class="mb-3">{{ form.last_name.label_tag }}{{ form.last_name }}</div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <!-- Gender -->
+  <fieldset class="col-md-6">
+    <legend class="col-form-label col-sm-2 pt-0">{{ form.gender.label }}</legend>
+    <div class="col-sm-10">
+      {% for radio in form.gender %}
+        <div class="form-check">
+          {{ radio.tag }}
+          <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+        </div>
+      {% endfor %}
+    </div>
+  </fieldset>
+
+  <!-- Designation -->
+  <fieldset class="col-md-6">
+    <legend class="col-form-label col-sm-2 pt-0">{{ form.designation.label }}</legend>
+    <div class="col-sm-10">
+      {% for radio in form.designation %}
+        <div class="form-check">
+          {{ radio.tag }}
+          <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+        </div>
+      {% endfor %}
+    </div>
+  </fieldset>
+</div>
+
+<div class="row g-3 mt-half">
+  <!-- Location -->
+  <div class="col-md-4">
+    <div class="mb-3">
+      {{ form.location.label_tag }}
+      <input type="text"
+             name="location"
+             id="id_location_{{ form_prefix }}"
+             class="form-control"
+             list="location_suggestions_{{ form_prefix }}"
+             value="{{ form.location.value|default_if_none:'' }}"
+             placeholder="Start typing city...">
+      <datalist id="location_suggestions_{{ form_prefix }}"></datalist>
+    </div>
+  </div>
+
+
+  <!-- Phone Numbers -->
+  <div class="col-md-4">
+    <div class="mb-3">
+      <label>Phone Numbers</label>
+      <div class="d-flex align-items-center gap-2">
+        {{ form.phone }}
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="add-phone-1{{ form_prefix }}">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+
+      <div id="phone2-wrapper-{{ form_prefix }}" class="mt-2 phone-email-slide">
+        <div class="d-flex align-items-center gap-2">
+          {{ form.phone_2 }}
+          <button type="button" class="btn btn-outline-secondary btn-sm" id="add-phone-2{{ form_prefix }}">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+          <button type="button" class="btn btn-outline-danger btn-sm" id="remove-phone-2{{ form_prefix }}">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <div id="phone3-wrapper-{{ form_prefix }}" class="mt-2 phone-email-slide">
+        <div class="d-flex align-items-center gap-2">
+          {{ form.phone_3 }}
+          <button type="button" class="btn btn-outline-danger btn-sm" id="remove-phone-3{{ form_prefix }}">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Emails -->
+  <div class="col-md-4">
+    <div class="mb-3">
+      <label>Email Addresses</label>
+      <div class="d-flex align-items-center gap-2">
+        {{ form.email }}
+        <button type="button" class="btn btn-outline-secondary btn-sm" id="add-email{{ form_prefix }}">
+          <i class="fa-solid fa-plus"></i>
+        </button>
+      </div>
+
+      <div id="alt-email-wrapper-{{ form_prefix }}" class="mt-2 phone-email-slide">
+        <div class="d-flex align-items-center gap-2">
+          {{ form.alt_email }}
+          <button type="button" class="btn btn-outline-danger btn-sm" id="remove-email{{ form_prefix }}">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const prefix = "{{ form_prefix }}";
+
+  // Phones
+  const phone2 = document.getElementById(`phone2-wrapper-${prefix}`);
+  const phone3 = document.getElementById(`phone3-wrapper-${prefix}`);
+  const addPhone1 = document.getElementById(`add-phone-1${prefix}`);
+  const addPhone2 = document.getElementById(`add-phone-2${prefix}`);
+  const removePhone2 = document.getElementById(`remove-phone-2${prefix}`);
+  const removePhone3 = document.getElementById(`remove-phone-3${prefix}`);
+
+  addPhone1?.addEventListener("click", () => {
+    phone2.classList.add("show");
+    addPhone1.classList.add("d-none");
+  });
+
+  addPhone2?.addEventListener("click", () => {
+    phone3.classList.add("show");
+    addPhone2.classList.add("d-none");
+  });
+
+  removePhone2?.addEventListener("click", () => {
+    phone2.classList.remove("show");
+    phone3.classList.remove("show");
+    addPhone1.classList.remove("d-none");
+  });
+
+  removePhone3?.addEventListener("click", () => {
+    phone3.classList.remove("show");
+    addPhone2.classList.remove("d-none");
+  });
+
+  // Emails
+  const altEmail = document.getElementById(`alt-email-wrapper-${prefix}`);
+  const addEmail = document.getElementById(`add-email${prefix}`);
+  const removeEmail = document.getElementById(`remove-email${prefix}`);
+
+  addEmail?.addEventListener("click", () => {
+    altEmail.classList.add("show");
+    addEmail.classList.add("d-none");
+  });
+
+  removeEmail?.addEventListener("click", () => {
+    altEmail.classList.remove("show");
+    addEmail.classList.remove("d-none");
+  });
+});
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const prefix = "{{ form_prefix }}";
+    const locationInput = document.getElementById(`id_location_${prefix}`);
+    const locationDatalist = document.getElementById(`location_suggestions_${prefix}`);
+    let debounce;
+
+    if (!locationInput || !locationDatalist) return;
+
+    locationInput.addEventListener("input", function () {
+      const query = locationInput.value.trim();
+      if (query.length < 3) return;
+
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`, {
+          headers: {
+            "User-Agent": "ThriveHubLite/1.0 (your-email@example.com)"
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          locationDatalist.innerHTML = "";
+          data.slice(0, 5).forEach(place => {
+            const option = document.createElement("option");
+            option.value = place.display_name;
+            locationDatalist.appendChild(option);
+          });
+        })
+        .catch(error => console.error("Location lookup failed:", error));
+      }, 300); // Debounce delay
+    });
+  });
+</script>

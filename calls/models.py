@@ -145,3 +145,32 @@ class SiteConfig(models.Model):
         if not self.pk and SiteConfig.objects.exists():
             raise ValueError("There can only be one SiteConfig instance.")
         super().save(*args, **kwargs)
+
+
+DESIGNATION_CHOICES = [
+    ('Psychologist', 'Psychologist'),
+    ('Psychiatrist', 'Psychiatrist'),
+]
+
+GENDER_CHOICES = [
+    ('Male', 'Male'),
+    ('Female', 'Female'),
+]
+
+
+class ReferralContact(models.Model):
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, default="Female")
+    designation = models.CharField(max_length=20, choices=DESIGNATION_CHOICES, default="Psychologist")
+    location = models.CharField(max_length=255)
+    phone = models.CharField(max_length=15, null=True, blank=True)
+    phone_2 = models.CharField(max_length=15, null=True, blank=True)
+    phone_3 = models.CharField(max_length=15, null=True, blank=True)
+    email = models.EmailField(max_length=255, null=True, blank=True)
+    alt_email = models.EmailField(max_length=255, null=True, blank=True)
+    date_updated = models.DateField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+

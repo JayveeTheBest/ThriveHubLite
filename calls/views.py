@@ -1,10 +1,11 @@
-from django.shortcuts import render, redirect
+from django.core.paginator import Paginator
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .forms import CallerForm, CallSessionForm
+from .forms import CallerForm, CallSessionForm, ReferralContactForm
 from django.utils import timezone
-from .models import CallSession, Caller, ReasonForCalling, Intervention, SuicideMethod, SourceOfInfo
+from .models import CallSession, Caller, ReasonForCalling, Intervention, SuicideMethod, SourceOfInfo, ReferralContact
 from .utils import generate_summary_with_groq
 from datetime import time, datetime, timedelta
 
@@ -208,3 +209,81 @@ def generate_summary(request):
 def call_logs(request):
     logs = CallSession.objects.select_related('caller', 'responder').order_by('-date', '-time_called')
     return render(request, 'calls/call_logs.html', {'logs': logs})
+
+
+@login_required
+def referrals(request):
+    search_query = request.GET.get('search', '')
+    filter_gender = request.GET.get('gender', 'All')
+    filter_location = request.GET.get('location', '')
+    filter_designation = request.GET.get('designation', 'All')
+
+    contacts = ReferralContact.objects.all()
+    contact_forms = {
+        contact.pk: ReferralContactForm(instance=contact, prefix=f"edit{contact.pk}")
+        for contact in contacts
+    }
+
+    if search_query:
+        contacts = contacts.filter(first_name__icontains=search_query)
+
+    if filter_gender != 'All':
+        contacts = contacts.filter(gender=filter_gender)
+
+    if filter_location:
+        contacts = contacts.filter(location__icontains=filter_location)
+
+    if filter_designation != 'All':
+        contacts = contacts.filter(designation=filter_designation)
+
+    # Attach form per contact
+    for contact in contacts:
+        contact.form = ReferralContactForm(instance=contact)
+
+    form = ReferralContactForm()  # for add modal
+
+    paginator = Paginator(contacts.order_by('first_name'), 6)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    return render(request, 'calls/referrals.html', {
+        'contacts': page_obj,
+        'form': form,
+        'contact_forms': contact_forms,
+    })
+
+
+@login_required
+def add_referral(request):
+    if request.method == 'POST':
+        form = ReferralContactForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('referrals')
+    else:
+        form = ReferralContactForm()
+    return render(request, 'calls/add_referral.html', {'form': form, 'title': 'Add Referral'})
+
+
+@login_required
+def edit_referral(request, pk):
+    contact = get_object_or_404(ReferralContact, pk=pk)
+    if request.method == 'POST':
+        form = ReferralContactForm(request.POST, instance=contact, prefix=f"edit{pk}")
+        if form.is_valid():
+            form.save()
+            return redirect('referrals')
+    return redirect('referrals')
+
+
+@login_required
+def delete_referral(request, pk):
+    contact = get_object_or_404(ReferralContact, pk=pk)
+    contact.delete()
+    return redirect('referrals')
+
+
+@login_required
+def referral_detail(request, id):
+    referral = get_object_or_404(ReferralContact, id=id)
+    return render(request, 'referrals/referral_detail.html', {'referral': referral})

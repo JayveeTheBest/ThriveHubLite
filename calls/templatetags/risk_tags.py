@@ -11,3 +11,8 @@ def risk_color(risk):
         'high': 'danger',
     }
     return colors.get(risk.lower(), 'secondary')
+
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
