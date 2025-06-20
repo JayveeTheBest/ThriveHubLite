@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% load risk_tags %}
+{% block content %}
+
+<div class="container mt-4">
+  <h2 class="mb-4">Call Logs</h2>
+
+  {% if logs %}
+    <div class="table-responsive rounded shadow-sm">
+      <table class="table table-hover align-middle border bg-white">
+        <thead class="table-light text-center align-middle">
+          <tr>
+            <th scope="col">Call ID</th>
+            <th scope="col">Date</th>
+            <th scope="col">Time</th>
+            <th scope="col">Gender</th>
+            <th scope="col">Risk Level</th>
+            <th scope="col">Responder</th>
+          </tr>
+        </thead>
+        <tbody style="text-align: center;">
+          {% for call in logs %}
+            <tr>
+              {% with year_suffix=call.date.year|stringformat:"s"|slice:"2:" %}
+                <td>TPCB-{{ year_suffix }}{{ call.id|stringformat:"04d" }}</td>
+              {% endwith %}
+              <td>{{ call.date }}</td>
+              <td>{{ call.time_called }}</td>
+              <td>
+                {% if call.caller.gender == "male" %}
+                  <i class="fa-solid fa-mars text-primary" title="Male"></i>
+                {% elif call.caller.gender == "female" %}
+                  <i class="fa-solid fa-venus text-danger" title="Female"></i>
+                {% elif call.caller.gender == "lgbtq" %}
+                  <i class="fa-solid fa-transgender text-warning" title="Non-binary"></i>
+                {% else %}
+                  <i class="fa-solid fa-question text-muted" title="Not Specified"></i>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge bg-{{ call.risk_level|risk_color }}">
+                  {{ call.get_risk_level_display }}
+                </span>
+              </td>
+              <td>{{ call.responder.get_full_name|default:call.responder.username }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="alert alert-info">No call logs found.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

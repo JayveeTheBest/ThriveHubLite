@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+  <h2 class="mb-4"> Log New Call:
+  <span class="badge bg-primary ms-2">{{ call_id }}</span>
+  </h2>
+
+  <form method="post" id="call-form" class="row g-3">
+    {% csrf_token %}
+
+    <!-- 📞 Call Timing -->
+    <div class="col-md-6">
+      {{ callsession_form.time_called.label_tag }}
+      {{ callsession_form.time_called }}
+    </div>
+    <div class="col-md-6">
+      {{ callsession_form.time_ended.label_tag }}
+      {{ callsession_form.time_ended }}
+    </div>
+
+    <hr class="my-3">
+
+    <!-- 👤 Caller Information -->
+    <div class="col-md-6">
+      {{ caller_form.name.label_tag }}
+      {{ caller_form.name }}
+    </div>
+    <div class="col-md-6">
+      {{ caller_form.location.label_tag }}
+      {{ caller_form.location }}
+      <div id="locationSuggestions" class="list-group mt-1" style="position: absolute; z-index: 10;"></div>
+    </div>
+
+    <div class="col-md-4">
+      {{ caller_form.gender.label_tag }}
+      {{ caller_form.gender }}
+    </div>
+    <div class="col-md-4">
+      {{ caller_form.status.label_tag }}
+      {{ caller_form.status }}
+    </div>
+    <div class="col-md-4">
+      {{ caller_form.age.label_tag }}
+      {{ caller_form.age }}
+    </div>
+
+    <hr class="my-3">
+
+    <!-- ℹ️ Source and Reason -->
+    <div class="col-md-6">
+      {{ caller_form.source_of_info.label_tag }}
+      {{ caller_form.source_of_info }}
+    </div>
+    <div class="col-md-6">
+      {{ callsession_form.reasons_for_calling.label_tag }}
+      {{ callsession_form.reasons_for_calling }}
+    </div>
+
+    <!-- Calling for Another Person Checkbox -->
+    <div class="form-check my-3">
+      {{ callsession_form.is_calling_for_others }}
+      {{ callsession_form.is_calling_for_others.label_tag }}
+    </div>
+
+    <!-- 👥 Alternate Person Info -->
+    <div id="altFields" class="row g-3 mt-3" style="display: none;">
+      <hr class="mt-3">
+      <h5>Information of the Person Being Called For</h5>
+
+      <!-- Row 1: Name and Location -->
+      <div class="col-md-6">
+        {{ callsession_form.other_person_name.label_tag }}
+        {{ callsession_form.other_person_name }}
+      </div>
+      <div class="col-md-6">
+        {{ callsession_form.other_person_location.label_tag }}
+        {{ callsession_form.other_person_location }}
+        <div id="other_person_locationSuggestions" class="list-group mt-1" style="position: absolute; z-index: 10;"></div>
+      </div>
+
+
+      <!-- Row 2: Gender, Status, Age -->
+      <div class="col-md-4">
+        {{ callsession_form.other_person_gender.label_tag }}
+        {{ callsession_form.other_person_gender }}
+      </div>
+      <div class="col-md-4">
+        {{ callsession_form.other_person_status.label_tag }}
+        {{ callsession_form.other_person_status }}
+      </div>
+      <div class="col-md-4">
+        {{ callsession_form.other_person_age.label_tag }}
+        {{ callsession_form.other_person_age }}
+      </div>
+    </div>
+
+    <hr class="my-3">
+
+    <!-- 🧠 Assessment and Intervention -->
+    <div class="col-md-4">
+      {{ callsession_form.risk_level.label_tag }}
+      {{ callsession_form.risk_level }}
+    </div>
+    <div class="col-md-4">
+      {{ callsession_form.interventions.label_tag }}
+      {{ callsession_form.interventions }}
+    </div>
+    <div class="col-md-4">
+      {{ callsession_form.suicide_methods.label_tag }}
+      {{ callsession_form.suicide_methods }}
+    </div>
+    <div class="col-12">
+      {{ callsession_form.comments.label_tag }}
+      {{ callsession_form.comments }}
+    </div>
+
+    <!-- CTA: Generate Summary -->
+    <div class="d-grid mt-4">
+      <button type="button" class="btn btn-outline-primary btn-lg" id="generateSummaryBtn">
+        Generate Summary
+      </button>
+    </div>
+
+    <!-- Summary Output -->
+    <div id="summarySection" style="display: none;" class="mt-3">
+      <h5>AI-Generated Summary</h5>
+      {{ callsession_form.ai_summary }}
+    </div>
+
+    <!-- CTA: Save -->
+    <div class="d-grid mt-3" id="saveLogBtn" style="display: none;">
+      <button type="submit" class="btn btn-success btn-lg">
+        Save Call Log
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+   // Set time_called to current time (HH:MM) when page loads
+  window.addEventListener('DOMContentLoaded', function () {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTime = `${hours}:${minutes}`;
+
+    const timeCalledInput = document.getElementById('id_time_called');
+    if (timeCalledInput && !timeCalledInput.value) {
+      timeCalledInput.value = currentTime;
+    }
+  });
+
+  // Location field suggestion
+  const locationFields = ['id_location', 'id_other_person_location'];
+
+  locationFields.forEach(fieldId => {
+    const inputField = document.getElementById(fieldId);
+
+    const suggestionsBox = document.createElement('div');
+    suggestionsBox.className = 'list-group mt-1';
+    suggestionsBox.style.position = 'absolute';
+    suggestionsBox.style.zIndex = '10';
+    inputField.parentNode.appendChild(suggestionsBox);
+
+    let activeIndex = -1;
+    let currentSuggestions = [];
+
+    function renderSuggestions(suggestions) {
+      suggestionsBox.innerHTML = '';
+      currentSuggestions = suggestions;
+
+      suggestions.forEach((item, index) => {
+        const option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'list-group-item list-group-item-action';
+        option.textContent = item.display_name;
+        option.dataset.index = index;
+        option.onclick = () => {
+          selectSuggestion(index);
+        };
+        suggestionsBox.appendChild(option);
+      });
+    }
+
+    function selectSuggestion(index) {
+      if (currentSuggestions[index]) {
+        inputField.value = currentSuggestions[index].display_name;
+        saveToRecent(fieldId, currentSuggestions[index].display_name);
+        suggestionsBox.innerHTML = '';
+        activeIndex = -1;
+      }
+    }
+
+    function saveToRecent(fieldId, value) {
+      const key = `${fieldId}_recent_locations`;
+      let history = JSON.parse(localStorage.getItem(key)) || [];
+      if (!history.includes(value)) {
+        history.unshift(value);
+        if (history.length > 5) history.pop();
+        localStorage.setItem(key, JSON.stringify(history));
+      }
+    }
+
+    function showRecentSuggestions() {
+      const key = `${fieldId}_recent_locations`;
+      const history = JSON.parse(localStorage.getItem(key)) || [];
+      if (history.length > 0) {
+        const mockData = history.map(name => ({ display_name: name }));
+        renderSuggestions(mockData);
+      }
+    }
+
+    let debounceTimer;
+    inputField.addEventListener('input', function () {
+      const query = this.value.trim();
+      activeIndex = -1;
+      clearTimeout(debounceTimer);
+
+      if (query.length < 3) {
+        suggestionsBox.innerHTML = '';
+        showRecentSuggestions();
+        return;
+      }
+
+      suggestionsBox.innerHTML = '<div class="list-group-item text-muted">Searching...</div>';
+
+      debounceTimer = setTimeout(() => {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&countrycodes=ph&q=${encodeURIComponent(query)}&limit=5&addressdetails=1`)
+          .then(response => response.json())
+          .then(data => {
+            const filtered = data.filter(item =>
+              (item.type === 'city' || item.type === 'town' || item.type === 'village') &&
+              item.address.country_code === 'ph'
+            );
+            if (filtered.length === 0) {
+              suggestionsBox.innerHTML = '<div class="list-group-item">No results in PH</div>';
+            } else {
+              renderSuggestions(filtered);
+            }
+          })
+          .catch(() => {
+            suggestionsBox.innerHTML = '<div class="list-group-item text-danger">Error fetching</div>';
+          });
+      }, 300);
+    });
+
+    inputField.addEventListener('keydown', function (e) {
+      const items = suggestionsBox.querySelectorAll('.list-group-item-action');
+      if (items.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIndex = (activeIndex + 1) % items.length;
+        highlight(items);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIndex = (activeIndex - 1 + items.length) % items.length;
+        highlight(items);
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        if (activeIndex >= 0) selectSuggestion(activeIndex);
+      }
+    });
+
+    function highlight(items) {
+      items.forEach((item, index) => {
+        if (index === activeIndex) {
+          item.classList.add('active');
+          item.scrollIntoView({ block: 'nearest' });
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+
+    document.addEventListener('click', function (event) {
+      if (!suggestionsBox.contains(event.target) && event.target !== inputField) {
+        suggestionsBox.innerHTML = '';
+      }
+    });
+
+    // Show recent on focus
+    inputField.addEventListener('focus', () => {
+      if (inputField.value.trim().length < 3) {
+        showRecentSuggestions();
+      }
+    });
+  });
+
+  // Toggle alternate fields if checkbox is checked
+  document.addEventListener('DOMContentLoaded', function () {
+    const toggle = document.getElementById("id_is_calling_for_others");
+    if (toggle) {
+      toggle.addEventListener('change', function () {
+        document.getElementById("altFields").style.display = this.checked ? "flex" : "none";
+      });
+    }
+
+  });
+
+  document.addEventListener('DOMContentLoaded', function () {
+    const summaryBtn = document.getElementById("generateSummaryBtn");
+
+    summaryBtn.addEventListener("click", function () {
+      const form = document.getElementById("call-form");
+      const formData = new FormData(form);
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+      for (const [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
+      }
+
+
+      fetch("{% url 'generate_summary' %}", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",  // ✅ Required to detect AJAX in Django
+          "X-CSRFToken": csrfToken
+        },
+        credentials: "same-origin"  // ✅ Ensures CSRF cookie is sent
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.summary) {
+          // Show summary
+          const summaryField = document.getElementById("id_ai_summary");
+          summaryField.value = data.summary;
+
+
+          // Reveal Save button and hide generate
+          document.getElementById("summarySection").style.display = "block";
+          document.getElementById("saveLogBtn").style.display = "block";
+          summaryBtn.style.display = "none";
+        } else {
+          alert("⚠️ Failed to generate summary: " + (data.error || "Unknown error."));
+        }
+      })
+      .catch(error => {
+        console.error("❌ Fetch error:", error);
+        alert("An error occurred while generating the summary.");
+      });
+    });
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const saveBtn = document.querySelector("#saveLogBtn button");
+    const form = document.getElementById("call-form");
+
+    if (saveBtn && form) {
+      saveBtn.addEventListener("click", function (e) {
+        e.preventDefault(); // Prevent any native behavior
+        console.log("💾 Save button clicked — submitting form...");
+        form.submit();      // Submit the form
+      });
+    }
+  });
+</script>
+
+{% endblock %}
