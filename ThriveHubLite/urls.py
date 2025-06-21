@@ -23,6 +23,6 @@ from . import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.dashboard, name='dashboard'),
-    path('dashboard/export/', views.export_calls, name='export_calls'),
+    path('dashboard/export/', views.export_soi_excel, name='export_soi_excel'),
     path('', include('calls.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

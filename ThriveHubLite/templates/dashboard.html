@@ -27,9 +27,9 @@
         </div>
       </form>
 
-      <a href="{% url 'export_calls' %}?year={{ selected_year }}{% if selected_month %}&month={{ selected_month }}{% endif %}"
+      <a href="{% url 'export_soi_excel' %}?year={{ selected_year }}{% if selected_month %}&month={{ selected_month }}{% endif %}"
          class="btn btn-outline-primary btn-sm">
-        <i class="fa-solid fa-file-arrow-down"></i> Export
+          <i class="fa-solid fa-file-arrow-down"></i> Export SOI Report
       </a>
     </div>
   </div>

@@ -2,13 +2,23 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Avg
 from django.http import HttpResponse
-from calls.models import CallSession, Caller
+from django.conf import settings
+from calls.models import CallSession, Caller, SiteConfig
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from collections import defaultdict
 from django.db.models.functions import ExtractYear
 import calendar
 import csv
+import os
+import pandas as pd
+from openpyxl import load_workbook
+from openpyxl.styles import Font
+from openpyxl.chart import BarChart, Reference, PieChart
+from openpyxl.chart.label import DataLabelList
+from openpyxl.drawing.image import Image as XLImage
+from io import BytesIO
+
 
 GENDER_LABELS = {
     'male': 'Male',
@@ -146,4 +156,138 @@ def export_calls(request):
             c.caller.get_status_display(),
         ])
 
+    return response
+
+
+@login_required
+def export_soi_excel(request):
+    year = int(request.GET.get('year', datetime.now().year))
+    month = request.GET.get('month')
+    config = SiteConfig.objects.first()
+
+    calls = CallSession.objects.select_related('caller', 'responder').filter(date__year=year)
+    if month:
+        calls = calls.filter(date__month=month)
+
+    # SHEET 2 – SOI (horizontal table)
+    soi_data = []
+    for c in calls:
+        soi_data.append({
+            "Responder": c.responder.first_name if c.responder else "",
+            "Tawag Paglaum Code": c.id,
+            "Date": c.date.strftime('%Y-%m-%d'),
+            "Shift": c.shift,
+            "Time Called": c.time_called.strftime('%H:%M') if c.time_called else "",
+            "Length of Call": str(c.length_of_call),
+            "Time Ended": c.time_ended.strftime('%H:%M') if c.time_ended else "",
+            "Name": c.caller.name,
+            "Gender": c.caller.get_gender_display(),
+            "Status": c.caller.get_status_display(),
+            "Age": c.caller.age,
+            "Location": c.caller.location,
+            "Source of Info": str(c.caller.source_of_info) if c.caller.source_of_info else "",
+            "Reason For Calling": c.reasons_for_calling.label if c.reasons_for_calling else "",
+            "Intervention": c.interventions,
+            "Risk Assessment": c.risk_level,
+            "Suicide/ Self Harming Method": c.suicide_methods or "",
+            "Other Comments": c.comments or "",
+        })
+    df_soi = pd.DataFrame(soi_data)
+
+    # Tally data
+    def make_summary(df, column, title):
+        return df[column].value_counts().reset_index().rename(columns={'index': title, column: 'Count'})
+
+    tally_shift = make_summary(df_soi, "Shift", "Shift")
+    tally_gender = make_summary(df_soi, "Gender", "Gender")
+    tally_age = make_summary(df_soi, "Age", "Age")
+    tally_risk = make_summary(df_soi, "Risk Assessment", "Risk")
+
+    # EXCEL EXPORT
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        # Sheet 2: SOI
+        df_soi.to_excel(writer, sheet_name='SOI', index=False)
+        workbook = writer.book
+
+        # Sheet 1: Detailed Report (vertical layout)
+        sheet = workbook.create_sheet("Detailed Report", 0)
+        writer.sheets["Detailed Report"] = sheet
+
+        # Header
+        sheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=2)
+        sheet.cell(row=1, column=1, value=config.site_name).font = Font(bold=True, size=14)
+        if config.logo and os.path.isfile(config.logo.path):
+            logo = XLImage(config.logo.path)
+            logo.width = 90
+            logo.height = 90
+            sheet.add_image(logo, "C1")
+
+        row = 3
+        for idx, c in enumerate(calls, 1):
+            case_fields = [
+                ("Case No.", f"TPCEB1-{str(c.id).zfill(3)}"),
+                ("Responder No.", c.responder.first_name if c.responder else ""),
+                ("Date", c.date.strftime('%Y-%m-%d')),
+                ("Time (Duration)", str(c.length_of_call)),
+                ("Name", c.caller.name),
+                ("Status", c.caller.get_status_display()),
+                ("Age", c.caller.age),
+                ("Location", c.caller.location),
+                ("Source of Info", str(c.caller.source_of_info) if c.caller.source_of_info else ""),
+                ("Reason for Calling", c.reasons_for_calling.label if c.reasons_for_calling else ""),
+                ("Detailed Report Call", c.ai_summary or "")
+            ]
+            for label, value in case_fields:
+                sheet.cell(row=row, column=1, value=f"{label}:").font = Font(bold=True)
+                sheet.cell(row=row, column=2, value=value)
+                row += 1
+            row += 1
+
+        # Sheet 3: Tally
+        sheet = workbook.create_sheet("Tally")
+        writer.sheets["Tally"] = sheet
+        row = 1
+        for name, df in {"Shift": tally_shift, "Gender": tally_gender, "Age": tally_age, "Risk": tally_risk}.items():
+            sheet.cell(row=row, column=1, value=name).font = Font(bold=True)
+            row += 1
+            for col_idx, col in enumerate(df.columns, 1):
+                sheet.cell(row=row, column=col_idx, value=col).font = Font(bold=True)
+            for tup in df.itertuples(index=False):
+                row += 1
+                for col_idx, val in enumerate(tup, 1):
+                    sheet.cell(row=row, column=col_idx, value=val)
+
+            chart = PieChart() if name == "Gender" else BarChart()
+            data = Reference(sheet, min_col=2, min_row=row - len(df) + 1, max_row=row)
+            cats = Reference(sheet, min_col=1, min_row=row - len(df) + 1, max_row=row)
+            chart.add_data(data, titles_from_data=False)
+            chart.set_categories(cats)
+            chart.title = f"{name} Distribution"
+            if name != "Gender":
+                chart.dLbls = DataLabelList()
+                chart.dLbls.showVal = True
+            if config.primary_color:
+                chart.series[0].graphicalProperties.solidFill = config.primary_color.strip("#")
+            row += 2
+            sheet.add_chart(chart, f"E{row}")
+            row += 10
+
+        # Freeze panes & auto-width
+        for sname in ["SOI", "Tally"]:
+            ws = writer.sheets[sname]
+            ws.freeze_panes = "A2"
+            for col in ws.columns:
+                max_len = max((len(str(cell.value)) if cell.value else 0) for cell in col)
+                ws.column_dimensions[col[0].column_letter].width = max_len + 2
+
+        # Sheet visibility fix
+        for ws in workbook.worksheets:
+            ws.sheet_state = "visible"
+        workbook.active = workbook.sheetnames.index("SOI")
+
+    buffer.seek(0)
+    filename = f"SOI_Report_{calendar.month_name[int(month)] if month else 'All'}_{year}.xlsx"
+    response = HttpResponse(buffer, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
