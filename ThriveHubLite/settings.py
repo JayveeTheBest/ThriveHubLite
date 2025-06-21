@@ -26,9 +26,9 @@ SECRET_KEY = config('SECRET_KEY')
 GROQ_API_KEY = config('GROQ_API_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = []
+DEBUG = False
+ALLOWED_HOSTS = ['thrivehub.pythonanywhere.com']
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 
 # Application definition
