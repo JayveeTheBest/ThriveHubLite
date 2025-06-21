@@ -255,6 +255,10 @@
           margin-top: 0.5rem;
         }
 
+        .fw-bold.responder {
+          color: {{ primary_color }} !important;
+        }
+
 
     </style>
 </head>
@@ -274,7 +278,7 @@
 
     <ul class="nav nav-pills flex-column mb-auto w-100 text-start px-2">
         <li>
-            <a href="#" class="nav-link text-white {% if request.path == '/' %}active{% endif %}">
+            <a href="{% url 'dashboard' %}" class="nav-link text-white {% if request.path == 'dashboard' %}active{% endif %}">
                 <i class="fas fa-chart-line"></i><span>Dashboard</span>
             </a>
         </li>
@@ -308,7 +312,7 @@
 <div id="content">
     <!-- Toggle Button for Mobile -->
     <div class="d-md-none d-flex justify-content-between align-items-center mb-3">
-      <span class="fw-bold">{{ request.user.get_full_name|default:request.user.username }}</span>
+      <span class="fw-bold responder">{{ request.user.get_full_name|default:request.user.username }}</span>
       <button id="topBarToggle" class="btn btn-outline-secondary">
         <i class="fas fa-bars"></i>
       </button>
@@ -334,7 +338,7 @@
           <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">3</span>
         </button>
         <div class="text-end d-none d-md-block">
-          <div class="fw-bold">{{ request.user.get_full_name|default:request.user.username }}</div>
+          <div class="fw-bold responder">{{ request.user.get_full_name|default:request.user.username }}</div>
           <small class="text-muted">Responder</small>
         </div>
       </div>
