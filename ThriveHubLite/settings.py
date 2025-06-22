@@ -26,9 +26,10 @@ SECRET_KEY = config('SECRET_KEY')
 GROQ_API_KEY = config('GROQ_API_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-ALLOWED_HOSTS = ['thrivehub.pythonanywhere.com']
+DEBUG = True
+ALLOWED_HOSTS = ['thrivehub.pythonanywhere.com', '127.0.0.1']
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
 
 
 # Application definition
@@ -130,4 +131,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
-LOGIN_REDIRECT_URL = ''
+
+LOGIN_REDIRECT_URL = 'dashboard'
+LOGOUT_REDIRECT_URL = ''
