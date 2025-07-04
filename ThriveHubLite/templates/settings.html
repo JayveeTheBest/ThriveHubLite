@@ -1,0 +1,352 @@
+{% extends "base.html" %}
+{% load form_extras %}
+{% block title %}Settings | ThriveHub{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">Settings</h2>
+  {% if tele_form.errors %}
+    <div class="alert alert-danger">
+      {{ tele_form.errors }}
+    </div>
+  {% endif %}
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-4" id="settingsTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link {% if active_tab == 'profile' %}active{% endif %}" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile-pane" type="button">
+        My Profile
+      </button>
+    </li>
+    {% if is_admin %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link {% if active_tab == 'admin' %}active{% endif %}" id="admin-tab" data-bs-toggle="tab" data-bs-target="#admin-pane" type="button">
+        Admin Settings
+      </button>
+    </li>
+    {% endif %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link {% if active_tab == 'scheduler' %}active{% endif %}" id="scheduler-tab" data-bs-toggle="tab" data-bs-target="#scheduler-pane" type="button">
+        Scheduler
+      </button>
+    </li>
+
+  </ul>
+
+  <!-- Tabs Content -->
+  <div class="tab-content">
+
+    <!-- Profile Tab -->
+    <div class="tab-pane fade {% if active_tab == 'profile' %}show active{% endif %}" id="profile-pane">
+      <div class="card shadow-sm rounded-4 p-4 mb-4">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="active_tab" value="profile">
+          <h5 class="mb-3">Account Information</h5>
+          <div class="row">
+            <div class="col-md-6">
+              {{ profile_form.username.label_tag }} {{ profile_form.username|add_class:"form-control mb-3" }}
+            </div>
+            <div class="col-md-6">
+              {{ profile_form.email.label_tag }} {{ profile_form.email|add_class:"form-control mb-3" }}
+            </div>
+          </div>
+
+          {% if profile_form.first_name and profile_form.last_name %}
+          <div class="row">
+            <div class="col-md-6">
+              {{ profile_form.first_name.label_tag }} {{ profile_form.first_name|add_class:"form-control mb-3" }}
+            </div>
+            <div class="col-md-6">
+              {{ profile_form.last_name.label_tag }} {{ profile_form.last_name|add_class:"form-control mb-3" }}
+            </div>
+          </div>
+          {% endif %}
+
+          <div class="text-end">
+            <button type="submit" name="profile_submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card shadow-sm rounded-4 p-4 mb-4">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="active_tab" value="profile">
+          <h5 class="mb-3">Change Password</h5>
+
+          {{ password_form.old_password.label_tag }} {{ password_form.old_password|add_class:"form-control mb-3" }}
+          {{ password_form.new_password1.label_tag }} {{ password_form.new_password1|add_class:"form-control mb-3" }}
+          {{ password_form.new_password2.label_tag }} {{ password_form.new_password2|add_class:"form-control mb-3" }}
+
+          <div class="text-end">
+            <button type="submit" name="password_submit" class="btn btn-secondary">Update Password</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    {% if is_admin %}
+    <!-- Admin Settings Tab -->
+    <div class="tab-pane fade {% if active_tab == 'admin' %}show active{% endif %}" id="admin-pane">
+      <div class="card shadow-sm rounded-4 p-4 mb-4">
+        <form method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="active_tab" value="admin">
+
+          <h5 class="mb-3">Site Configuration</h5>
+
+          <!-- Site Name -->
+          <div class="mb-3">
+            <label for="{{ site_form.site_name.id_for_label }}" class="form-label">Site Name</label>
+            {{ site_form.site_name|add_class:"form-control" }}
+          </div>
+
+          <!-- Tagline -->
+          <div class="mb-3">
+            <label for="{{ site_form.tagline.id_for_label }}" class="form-label">Tagline</label>
+            {{ site_form.tagline|add_class:"form-control" }}
+          </div>
+
+          <!-- Logo Upload -->
+          <div class="mb-3">
+            <label for="{{ site_form.logo.id_for_label }}" class="form-label">Site Logo</label>
+            {{ site_form.logo.as_widget|add_class:"form-control" }}
+            {% if site_form.instance.logo %}
+              <div class="mt-2">
+                <span class="form-text">Currently:</span><br>
+                <img src="{{ site_form.instance.logo.url }}" alt="Current Logo" class="img-thumbnail mt-1" style="max-height: 80px;">
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Favicon Upload -->
+          <div class="mb-3">
+            <label for="{{ site_form.favicon.id_for_label }}" class="form-label">Favicon</label>
+            {{ site_form.favicon.as_widget|add_class:"form-control" }}
+            {% if site_form.instance.favicon %}
+              <div class="mt-2">
+                <span class="form-text">Currently:</span><br>
+                <img src="{{ site_form.instance.favicon.url }}" alt="Current Favicon" class="img-thumbnail mt-1" style="max-height: 64px;">
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Primary Color -->
+          <div class="mb-3">
+            <label for="{{ site_form.primary_color.id_for_label }}" class="form-label">Primary Color</label>
+            {{ site_form.primary_color|add_class:"form-control form-control-color" }}
+          </div>
+
+          <div class="text-end">
+            <button type="submit" name="site_submit" class="btn btn-primary">Save Site Settings</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+
+
+    <!-- Scheduler Tab -->
+    <div class="tab-pane fade {% if active_tab == 'scheduler' %}show active{% endif %}" id="scheduler-pane">
+      <div class="d-flex justify-content-end align-items-center mb-4">
+        {% if is_admin %}
+          <a href="{% url 'assign_shift' %}" class="btn btn-outline-primary">
+            <i class="far fa-calendar-check"></i> Assign Shifts
+          </a>
+        {% endif %}
+
+        {% if not is_admin %}
+          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#requestShiftModal">
+            <i class="fas fa-calendar-check"></i> Request Shifts
+          </button>
+        {% endif %}
+      </div>
+
+      <!-- Modals -->
+      {% include 'scheduler/modals/request_shift.html' %}
+
+      <!-- Calendar Container -->
+      <div class="card shadow-sm rounded-4 p-4 mb-4">
+        <div id="schedulerCalendar"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const calendarEl = document.getElementById('schedulerCalendar');
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      themeSystem: 'bootstrap5',
+      firstDay: 0,
+      height: 'auto',
+      events: function(fetchInfo, successCallback, failureCallback) {
+        // Fetch events and group them
+        fetch('/api/scheduler/events/')
+          .then(response => response.json())
+          .then(data => {
+            const groupedEvents = groupEventsByShift(data);
+            successCallback(groupedEvents);
+          })
+          .catch(error => {
+            console.error('Error fetching events:', error);
+            failureCallback(error);
+          });
+      },
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,listMonth'
+      },
+      eventDisplay: 'block',
+      eventColor: '#0d6efd',
+      eventTextColor: 'white',
+      // Custom event ordering
+      eventOrder: function(a, b) {
+        // Use the shiftOrder from extendedProps instead of parsing titles
+        const orderA = a.extendedProps.shiftOrder || 99;
+        const orderB = b.extendedProps.shiftOrder || 99;
+
+        return orderA - orderB;
+      },
+      // Custom tooltip on hover
+      eventMouseEnter: function(info) {
+        if (info.event.extendedProps.fullList) {
+          info.el.title = info.event.extendedProps.fullList;
+        }
+      },
+      // Custom event content for holidays
+      eventContent: function(arg) {
+        if (arg.event.extendedProps.isHoliday) {
+          return {
+            html: `<i class="fas fa-calendar-day"></i> ${arg.event.title.replace('🎉 ', '')}`
+          };
+        }
+        return { html: arg.event.title };
+      },
+      // Modify day cells to show holidays in the header
+      dayCellDidMount: function(info) {
+        // We'll store holidays here and modify the day number
+        const dateStr = info.date.toISOString().split('T')[0];
+        // This will be populated after events are loaded
+      },
+      // After events are loaded, update day headers
+      eventsSet: function(events) {
+        // Find holidays and update day headers
+        const holidaysByDate = {};
+        events.forEach(event => {
+          if (event.extendedProps && event.extendedProps.isHoliday) {
+            const dateStr = event.start.toISOString().split('T')[0];
+            holidaysByDate[dateStr] = event.extendedProps.fullList;
+          }
+        });
+
+        // Update day number displays
+        calendar.el.querySelectorAll('.fc-daygrid-day').forEach(dayEl => {
+          const dateStr = dayEl.getAttribute('data-date');
+          if (holidaysByDate[dateStr]) {
+            const dayNumberEl = dayEl.querySelector('.fc-daygrid-day-number');
+            if (dayNumberEl && !dayNumberEl.querySelector('.holiday-icon')) {
+              dayNumberEl.innerHTML += ` <span class="holiday-icon" title="${holidaysByDate[dateStr]}">🎉</span>`;
+            }
+          }
+        });
+      }
+    });
+
+    function groupEventsByShift(events) {
+      const shiftOrder = {
+        'Holiday': 1,  // Holidays come first
+        'Morning': 2,
+        'Mid': 3,
+        'Afternoon': 4,
+        'Night': 5,
+        'OFF': 6
+      };
+
+      const shiftColors = {
+        'Morning': '#007bff',
+        'Mid': '#ffc107',
+        'Afternoon': '#fd7e14',
+        'Night': '#343a40',
+        'OFF': '#dc3545'
+      };
+
+      // Separate holidays from shift assignments
+      const holidays = events.filter(event => event.color === '#dc3545' && event.title.indexOf('(') === -1);
+      const shifts = events.filter(event => event.color !== '#dc3545' || event.title.indexOf('(') !== -1);
+
+      // Group shifts by date and shift type
+      const groupedByDate = {};
+
+      shifts.forEach(event => {
+        const date = event.start;
+        const shiftMatch = event.title.match(/^([^(]+)/);
+        const shiftName = shiftMatch ? shiftMatch[1].trim() : 'Unknown';
+        const personMatch = event.title.match(/\(([^)]+)\)/);
+        const personName = personMatch ? personMatch[1] : 'Unknown';
+
+        if (!groupedByDate[date]) {
+          groupedByDate[date] = {};
+        }
+
+        if (!groupedByDate[date][shiftName]) {
+          groupedByDate[date][shiftName] = [];
+        }
+
+        groupedByDate[date][shiftName].push(personName);
+      });
+
+      // Create new grouped events
+      const newEvents = []; // Don't include holidays as events anymore
+
+      // Skip adding holidays as events since they'll be in day headers
+      // holidays.forEach(holiday => {
+      //   newEvents.push({...});
+      // });
+
+      Object.keys(groupedByDate).forEach(date => {
+        Object.keys(groupedByDate[date]).forEach(shiftName => {
+          const people = groupedByDate[date][shiftName];
+          const shortList = people.length > 2 ? `${people.slice(0, 2).join(', ')} +${people.length - 2} more` : people.join(', ');
+          const fullList = people.join(', ');
+
+          newEvents.push({
+            title: `${shiftName} (${shortList})`,
+            start: date,
+            color: shiftColors[shiftName] || '#6c757d',
+            allDay: true,
+            extendedProps: {
+              shiftOrder: shiftOrder[shiftName] || 99,
+              fullList: `${shiftName}: ${fullList}`
+            }
+          });
+        });
+      });
+
+      // But we still need to include holidays in the data for the day header modification
+      const holidayEvents = [];
+      holidays.forEach(holiday => {
+        holidayEvents.push({
+          title: holiday.title,
+          start: holiday.start,
+          color: 'transparent', // Make it invisible
+          allDay: true,
+          display: 'none', // Hide from calendar
+          extendedProps: {
+            shiftOrder: 1,
+            fullList: holiday.title,
+            isHoliday: true
+          }
+        });
+      });
+
+      return [...newEvents, ...holidayEvents];
+    }
+
+    calendar.render();
+  });
+</script>
+
+{% endblock %}

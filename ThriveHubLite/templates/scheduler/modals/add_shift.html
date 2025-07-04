@@ -1,0 +1,46 @@
+{% load form_extras %}
+<div class="modal fade" id="addShiftModal" tabindex="-1" aria-labelledby="addShiftModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="active_tab" value="scheduler">
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="addShiftModalLabel">Define New Shift Type</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-4">
+              {{ shift_form.name.label_tag }} {{ shift_form.name|add_class:"form-control" }}
+            </div>
+            <div class="col-md-4">
+              {{ shift_form.start_time.label_tag }} {{ shift_form.start_time|add_class:"form-control" }}
+            </div>
+            <div class="col-md-4">
+              {{ shift_form.end_time.label_tag }} {{ shift_form.end_time|add_class:"form-control" }}
+            </div>
+            <div class="col-md-4">
+              {{ shift_form.color.label_tag }} {{ shift_form.color }}
+            </div>
+            <div class="col-12 mt-2">
+              <div class="form-check">
+                {{ shift_form.is_teleconsult|add_class:"form-check-input" }}
+                <label class="form-check-label" for="{{ shift_form.is_teleconsult.id_for_label }}">Teleconsult Shift?</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" name="shift_submit" class="btn btn-success">
+            <i class="bi bi-clock-history me-1"></i> Add Shift
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

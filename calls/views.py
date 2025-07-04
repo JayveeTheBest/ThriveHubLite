@@ -2,7 +2,8 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
 from .forms import CallerForm, CallSessionForm, ReferralContactForm
 from django.utils import timezone
 from .models import CallSession, Caller, ReasonForCalling, Intervention, SuicideMethod, SourceOfInfo, ReferralContact
@@ -209,6 +210,13 @@ def generate_summary(request):
 def call_logs(request):
     logs = CallSession.objects.select_related('caller', 'responder').order_by('-date', '-time_called')
     return render(request, 'calls/call_logs.html', {'logs': logs})
+
+
+@login_required
+def call_details_modal(request, pk):
+    call = get_object_or_404(CallSession.objects.select_related('caller', 'responder', 'reasons_for_calling', 'interventions', 'suicide_methods'), pk=pk)
+    html = render_to_string('calls/modals/call_details_modal.html', {'call': call})
+    return HttpResponse(html)
 
 
 @login_required

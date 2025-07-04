@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% block title %}Shift Calendar | ThriveHub{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3 class="mb-4">📅 Shift Calendar – {{ month }}/{{ year }}</h3>
+
+  <div class="row row-cols-2 row-cols-md-4 row-cols-lg-7 g-3">
+    {% for day in calendar_days %}
+      <div class="col">
+        <div class="border rounded p-2 h-100 bg-light-subtle">
+          <strong>{{ day.date|date:"D, M j" }}</strong>
+          {% if day.holiday %}
+            <span class="badge bg-warning text-dark d-block mt-1">
+              {{ day.holiday.label }}
+            </span>
+          {% endif %}
+          <ul class="list-unstyled mt-2 mb-0">
+            {% for shift in day.shifts %}
+              <li>
+                <span class="badge bg-white text-dark d-block w-100 border">
+                  🕘 {{ shift.name }}<br><small>{{ shift.start_time|time:"H:i" }} – {{ shift.end_time|time:"H:i" }}</small>
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

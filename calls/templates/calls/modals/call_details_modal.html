@@ -1,0 +1,67 @@
+{% load risk_tags %}
+<div class="container-fluid">
+  <div class="d-flex justify-content-end align-items-center mb-3">
+    <small class="text-muted">{{ call.date }} at {{ call.time_called }}</small>
+  </div>
+
+  <div class="row g-3">
+    <!-- Caller Profile -->
+    <div class="col-md-6">
+      <div class="bg-light p-3 rounded shadow-sm">
+        <h6 class="text-secondary fw-bold mb-2">👤 Caller Information</h6>
+        <p><strong>Name:</strong> {{ call.caller.name }}</p>
+        <p><strong>Gender:</strong> {{ call.caller.get_gender_display }}</p>
+        <p><strong>Age:</strong> {{ call.caller.age }}</p>
+        <p><strong>Status:</strong> {{ call.caller.get_status_display }}</p>
+        <p><strong>Location:</strong> {{ call.caller.location }}</p>
+        <p><strong>Source of Info:</strong> {{ call.caller.source_of_info }}</p>
+      </div>
+    </div>
+
+    <!-- Call Metadata -->
+    <div class="col-md-6">
+      <div class="bg-light p-3 rounded shadow-sm">
+        <h6 class="text-secondary fw-bold mb-2">📋 Session Details</h6>
+        <p><strong>Shift:</strong> {{ call.get_shift_display }}</p>
+        <p><strong>Duration:</strong> {{ call.length_of_call }}</p>
+        <p><strong>Responder:</strong> {{ call.responder.get_full_name|default:call.responder.username }}</p>
+        <p>
+          <strong>Risk Level:</strong>
+          <span class="badge bg-{{ call.risk_level|risk_color }}">
+            {{ call.get_risk_level_display }}
+          </span>
+        </p>
+        <p><strong>Reason for Calling:</strong> {{ call.reasons_for_calling }}</p>
+        <p><strong>Suicide Method:</strong> {{ call.suicide_methods }}</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="my-4">
+
+  <!-- Interventions and Summary -->
+  <div class="bg-white p-3 border rounded shadow-sm">
+    <h6 class="text-secondary fw-bold mb-3">📘 Interventions</h6>
+    <p><strong>Intervention:</strong> {{ call.interventions }}</p>
+    <p><strong>Comments:</strong> {{ call.comments|default:"No additional notes." }}</p>
+    <p><strong>AI Summary:</strong> {{ call.ai_summary|default:"No AI summary provided." }}</p>
+  </div>
+</div>
+
+
+<style>
+    .modal-body {
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .bg-light {
+      background-color: #f8f9fa !important;
+    }
+
+    h6 {
+      border-bottom: 1px solid #dee2e6;
+      padding-bottom: 4px;
+    }
+
+</style>

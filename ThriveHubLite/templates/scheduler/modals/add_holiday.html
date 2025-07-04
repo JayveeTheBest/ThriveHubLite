@@ -1,0 +1,36 @@
+{% load form_extras %}
+<div class="modal fade" id="addHolidayModal" tabindex="-1" aria-labelledby="addHolidayModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="active_tab" value="scheduler">
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="addHolidayModalLabel">Add New Holiday</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label for="id_label" class="form-label">Holiday Name</label>
+              {{ holiday_form.label|add_class:"form-control" }}
+            </div>
+            <div class="col-md-4">
+              <label for="id_date" class="form-label">Date</label>
+              {{ holiday_form.date|add_class:"form-control" }}
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" name="holiday_submit" class="btn btn-primary">
+            <i class="bi bi-calendar-plus me-1"></i> Add Holiday
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% load form_extras %}
+{% load static %}
+
+{% block title %}Assign Shifts{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <!-- Header: Month/Year Selection and Controls -->
+  <div class="d-flex justify-content-between align-items-center flex-wrap mb-4">
+    <form method="get" id="monthYearForm" class="d-flex align-items-center gap-2 flex-wrap">
+      <h4 class="mb-0 me-2">Assign Shifts</h4>
+
+      <select name="month" id="month" class="form-select form-select-sm" style="width: auto;">
+        {% for num, name in months %}
+          <option value="{{ num }}" {% if num == current_month_num %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+
+      <select name="year" id="year" class="form-select form-select-sm" style="width: auto;">
+        {% for y in year_range %}
+          <option value="{{ y }}" {% if y == current_year %}selected{% endif %}>{{ y }}</option>
+        {% endfor %}
+      </select>
+    </form>
+
+    <div class="d-flex align-items-center flex-wrap gap-2">
+      <!-- View Mode Toggle -->
+      <div class="btn-group btn-group-sm" role="group">
+        <a href="?view=month&month={{ current_month_num }}&year={{ current_year }}" class="btn btn-outline-primary {% if view_mode == 'month' %}active{% endif %}">Month</a>
+        <a href="?view=week&start={{ calendar_days.0|date:'Y-m-d' }}&month={{ current_month_num }}&year={{ current_year }}" class="btn btn-outline-primary {% if view_mode == 'week' %}active{% endif %}">Week</a>
+      </div>
+
+      {% if view_mode == "week" %}
+      <!-- Week Navigation -->
+      <div class="btn-group btn-group-sm" role="group">
+        <a href="?view=week&start={{ calendar_days.0|add_days:-7|date:'Y-m-d' }}&month={{ current_month_num }}&year={{ current_year }}" class="btn btn-outline-secondary">‹ Prev</a>
+        <a href="?view=week&start={{ calendar_days.0|add_days:7|date:'Y-m-d' }}&month={{ current_month_num }}&year={{ current_year }}" class="btn btn-outline-secondary">Next ›</a>
+      </div>
+      {% endif %}
+
+      <!-- Scheduling Controls Menu -->
+      <div class="dropdown">
+        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="Manage Scheduling Options">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+          <li><a class="small dropdown-item" data-bs-toggle="modal" data-bs-target="#addHolidayModal">Add Holiday</a></li>
+          <li><a class="small dropdown-item" data-bs-toggle="modal" data-bs-target="#addShiftModal">Define Shift</a></li>
+          <li><a class="small dropdown-item" data-bs-toggle="modal" data-bs-target="#assignTeleModal">Assign Teleconsult</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="alert alert-info shadow-sm mb-4">
+    <div class="d-flex justify-content-between align-items-center flex-wrap">
+      <div>
+        <h5 class="mb-1">📅 Scheduling Overview for {{ current_month }} {{ current_year }}</h5>
+        <ul class="mb-0 small">
+          <li><strong>{{ calendar_days|length }}</strong> total days</li>
+          <li><strong>{{ calendar_days|filter_weekends|length }}</strong> weekends</li>
+          <li><strong>{{ holidays|length }}</strong> holidays</li>
+          <li><strong>{{ total_off_days }}</strong> max off-days (weekends + holidays)</li>
+        </ul>
+      </div>
+      <div class="text-end">
+        <span class="badge bg-warning text-dark">🟡 Teleconsultation shifts allowed only on weekdays</span>
+        <br>
+        <span class="badge bg-danger">🚫 Time-off requests must respect off-day limits</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shift Grid Table -->
+  <div class="table-responsive rounded shadow-sm border">
+    <form method="post" action="{% url 'submit_shifts' %}">
+      {% csrf_token %}
+    <table class="table table-bordered align-middle text-center mb-0">
+      <thead class="table-light sticky-top">
+        <tr>
+          <th class="bg-white sticky-col">Name</th>
+          {% for day in calendar_days %}
+          <th class="small wider-day-col {% if forloop.counter0|divisibleby:7 and not forloop.first %}week-divider{% endif %}">
+            {{ day|date:"D" }}<br>{{ day|date:"M j" }}
+
+            <div class="mt-1 d-flex flex-wrap justify-content-center gap-1">
+              <span class="badge bg-blue">🌅 {{ shift_pref_counts|get_item:day|get_item:"Morning" }}</span>
+              <span class="badge bg-warning text-dark">🟡 {{ shift_pref_counts|get_item:day|get_item:"Mid" }}</span>
+              <span class="badge bg-orange">🌇 {{ shift_pref_counts|get_item:day|get_item:"Afternoon" }}</span>
+              <span class="badge bg-dark">🌃 {{ shift_pref_counts|get_item:day|get_item:"Night" }}</span>
+            </div>
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for responder in responders %}
+        <tr>
+          <th class="bg-light text-start sticky-col">
+            <h6 class="mb-0 text-uppercase">{{ responder.last_name|default:responder.username }}</h6>
+          </th>
+          {% for day in calendar_days %}
+            {% with shift=shift_lookup|get_item:responder.id|get_item:day %}
+              {% with is_tele=tele_lookup|contains:responder.id %}
+                {% if shift %}
+                  <td class="wider-day-col p-1">
+                    <select name="assignments-{{ responder.id }}-{{ day|date:'Y-m-d' }}" class="form-select form-select-sm assign-shift-select {{ shift_css_classes|get_item:shift.name|default:'bg-secondary' }}" data-responder="{{ responder.id }}" data-date="{{ day }}">
+                      {% for s in shift_types %}
+                        <option value="{{ s.id }}" {% if s.id == shift.id %}selected{% endif %}>{{ s.name }}</option>
+                      {% endfor %}
+                    </select>
+                  </td>
+                {% elif is_tele %}
+                  {% with weekday=day.weekday %}
+                    {% if weekday < 5 %}
+                      {% with shift_class=shift_css_classes|get_item:mid_shift.name %}
+                      <td class="wider-day-col p-1">
+                        <select class="form-select form-select-sm assign-shift-select {{ shift_class }}" data-responder="{{ responder.id }}" data-date="{{ day }}">
+                          {% for s in shift_types %}
+                            <option value="{{ s.id }}" {% if s.id == mid_shift.id %}selected{% endif %}>{{ s.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </td>
+                      {% endwith %}
+                    {% else %}
+                      {% with shift_class=shift_css_classes|get_item:off_shift.name %}
+                      <td class="wider-day-col p-1">
+                        <select name="assignments-{{ responder.id }}-{{ day|date:'Y-m-d' }}" class="form-select form-select-sm assign-shift-select {{ shift_class }}" data-responder="{{ responder.id }}" data-date="{{ day }}">
+                          {% for s in shift_types %}
+                            <option value="{{ s.id }}" {% if s.id == off_shift.id %}selected{% endif %}>{{ s.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </td>
+                      {% endwith %}
+                    {% endif %}
+                  {% endwith %}
+                {% else %}
+                  {% with off=off_lookup|get_item:responder.id|get_item:day %}
+                  {% with pref=pref_lookup|get_item:responder.id|get_item:day %}
+                    {% if off %}
+                      {% with shift_class=shift_css_classes.OFF %}
+                      <td class="wider-day-col p-1">
+                        <select name="assignments-{{ responder.id }}-{{ day|date:'Y-m-d' }}" class="form-select form-select-sm assign-shift-select {{ shift_class }}" data-responder="{{ responder.id }}" data-date="{{ day }}">
+                          {% for shift in shift_types %}
+                            <option value="{{ shift.id }}" {% if shift.name == "Time Off" %}selected{% endif %}>{{ shift.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </td>
+                      {% endwith %}
+                    {% elif pref %}
+                      {% with shift_class=shift_css_classes|get_item:pref.shift.name %}
+                      <td class="wider-day-col p-1">
+                        <select name="assignments-{{ responder.id }}-{{ day|date:'Y-m-d' }}" class="form-select form-select-sm assign-shift-select {{ shift_class }}" data-responder="{{ responder.id }}" data-date="{{ day }}">
+                          {% for shift in shift_types %}
+                            <option value="{{ shift.id }}" {% if pref.shift.id == shift.id %}selected{% endif %}>{{ shift.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </td>
+                      {% endwith %}
+                    {% else %}
+                      <td class="wider-day-col p-1">
+                        <select name="assignments-{{ responder.id }}-{{ day|date:'Y-m-d' }}" class="form-select form-select-sm assign-shift-select" data-responder="{{ responder.id }}" data-date="{{ day }}">
+                          <option value=""></option>
+                          {% for shift in shift_types %}
+                            <option value="{{ shift.id }}">{{ shift.name }}</option>
+                          {% endfor %}
+                        </select>
+                      </td>
+                    {% endif %}
+                  {% endwith %}
+                  {% endwith %}
+                {% endif %}
+              {% endwith %}
+            {% endwith %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="mt-3 text-end">
+      <button type="submit" class="btn btn-primary">Save Shift Assignments</button>
+    </div>
+  </form>
+</div>
+
+<!-- Modals -->
+{% include 'scheduler/modals/add_holiday.html' %}
+{% include 'scheduler/modals/add_shift.html' %}
+{% include 'scheduler/modals/assign_teleconsult.html' %}
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("monthYearForm");
+    const selects = form.querySelectorAll("select");
+
+    selects.forEach(select => {
+      select.addEventListener("change", () => {
+        form.submit();
+      });
+    });
+  });
+</script>
+{% endblock %}

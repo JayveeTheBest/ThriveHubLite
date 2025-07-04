@@ -1,0 +1,92 @@
+<!-- Request Shift and Time Off Modal -->
+<div class="modal fade" id="requestShiftModal" tabindex="-1" aria-labelledby="requestShiftModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <form method="post" action="{% url 'request_shift' %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Request Shift & Time Off</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Auto-set Next Month -->
+          <div class="mb-3">
+            <label for="month" class="form-label">Target Month</label>
+            <input type="month" id="month" name="month" class="form-control" required>
+          </div>
+
+          <!-- Shift Preference (Buttons) -->
+          <div class="mb-3">
+            <label class="form-label">Preferred Shift</label>
+            <div class="btn-group w-100 flex-wrap" role="group">
+              {% for id, name in shift_choices %}
+                <input type="radio" class="btn-check" name="shift" id="shift_{{ id }}" value="{{ id }}" required>
+                <label class="btn btn-outline-primary m-1" for="shift_{{ id }}">{{ name }}</label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Time Off Weekdays (Buttons) -->
+          <div class="mb-3">
+            <label class="form-label">Time Off Days (Select up to 2)</label>
+            <div class="d-flex flex-wrap gap-2">
+              {% for day in weekdays %}
+                <input type="checkbox" class="btn-check timeoff-day" id="timeoff_{{ day }}" name="timeoff_days" value="{{ day }}">
+                <label class="btn btn-outline-danger" for="timeoff_{{ day }}">{{ day }}</label>
+              {% endfor %}
+            </div>
+          </div>
+
+          <!-- Optional Leave (Collapsible) -->
+          <div class="mb-3">
+            <a class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" href="#leaveSection" role="button" aria-expanded="false">
+              + Add Optional Leave Dates
+            </a>
+            <div class="collapse mt-3" id="leaveSection">
+              <label class="form-label">Leave Date Range</label>
+              <div class="row g-2">
+                <div class="col">
+                  <input type="date" class="form-control" name="leave_start" placeholder="Start Date">
+                </div>
+                <div class="col">
+                  <input type="date" class="form-control" name="leave_end" placeholder="End Date">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Submit</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    // Auto-set month input to next month
+    const monthInput = document.getElementById("month");
+    const now = new Date();
+    now.setMonth(now.getMonth() + 1);
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    monthInput.value = `${year}-${month}`;
+
+    // Limit time off to 2 selections
+    const timeoffBoxes = document.querySelectorAll('.timeoff-day');
+    timeoffBoxes.forEach(box => {
+      box.addEventListener('change', () => {
+        const checked = Array.from(timeoffBoxes).filter(cb => cb.checked);
+        if (checked.length > 2) {
+          alert("You can select up to 2 time off days only.");
+          box.checked = false;
+        }
+      });
+    });
+  });
+</script>

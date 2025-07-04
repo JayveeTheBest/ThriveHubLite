@@ -2,6 +2,9 @@ from .models import SiteConfig
 import os
 from groq import Groq
 from django.conf import settings
+from calendar import monthrange
+from datetime import date, timedelta
+from .models import ShiftType, Holiday
 
 
 def get_primary_color():
@@ -86,3 +89,20 @@ def generate_summary_with_groq(caller=None, session=None, transcript=None):
         print(f"[AI Summary Error] {type(e).__name__}: {e}")
         return "⚠️ Could not generate AI summary at this time."
 
+
+def generate_calendar_matrix(year, month):
+    first_day = date(year, month, 1)
+    days_in_month = monthrange(year, month)[1]
+    shifts = list(ShiftType.objects.order_by('start_time'))
+
+    calendar_days = []
+    for day in range(1, days_in_month + 1):
+        current_date = date(year, month, day)
+        holiday = Holiday.objects.filter(date=current_date).first()
+        calendar_days.append({
+            'date': current_date,
+            'holiday': holiday,
+            'shifts': shifts,
+        })
+
+    return calendar_days

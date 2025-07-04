@@ -20,7 +20,7 @@
         </thead>
         <tbody style="text-align: center;">
           {% for call in logs %}
-            <tr>
+            <tr class="clickable-row" data-id="{{ call.id }}" style="cursor: pointer;">
               {% with year_suffix=call.date.year|stringformat:"s"|slice:"2:" %}
                 <td>TPCB-{{ year_suffix }}{{ call.id|stringformat:"04d" }}</td>
               {% endwith %}
@@ -52,5 +52,38 @@
     <div class="alert alert-info">No call logs found.</div>
   {% endif %}
 </div>
+
+<div class="modal fade" id="callDetailsModal" tabindex="-1" aria-labelledby="callDetailsModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="callDetailsModalLabel">Call Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="modal-content-area">
+        <!-- Details will be loaded here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.clickable-row').forEach(row => {
+      row.addEventListener('click', function () {
+        const callId = this.getAttribute('data-id');
+
+        fetch(`/calls/details/${callId}/`)
+          .then(response => response.text())
+          .then(html => {
+            document.getElementById('modal-content-area').innerHTML = html;
+            const modal = new bootstrap.Modal(document.getElementById('callDetailsModal'));
+            modal.show();
+          });
+      });
+    });
+  });
+</script>
 
 {% endblock %}

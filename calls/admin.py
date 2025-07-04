@@ -7,7 +7,10 @@ from .models import (
     SuicideMethod,
     RiskDetail,
     SourceOfInfo,
-    SiteConfig
+    SiteConfig,
+    ShiftType,
+    Holiday,
+    ShiftAssignment,
 )
 
 
@@ -61,3 +64,23 @@ class SiteConfigAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         # Prevent deletion of SiteConfig
         return False
+
+
+@admin.register(ShiftType)
+class ShiftTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'start_time', 'end_time', 'is_teleconsult')
+    ordering = ('start_time',)
+
+
+@admin.register(Holiday)
+class HolidayAdmin(admin.ModelAdmin):
+    list_display = ('label', 'date')
+    list_filter = ('date',)
+    search_fields = ('label',)
+
+
+@admin.register(ShiftAssignment)
+class ShiftAssignmentAdmin(admin.ModelAdmin):
+    list_display = ('responder', 'date', 'shift')
+    list_filter = ('date',)
+    search_fields = ('responder',)

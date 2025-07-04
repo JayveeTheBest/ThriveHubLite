@@ -5,6 +5,7 @@ urlpatterns = [
     path('log-call/', views.log_call, name='log_call'),
     path('generate-summary/', views.generate_summary, name='generate_summary'),
     path('logs/', views.call_logs, name='call_logs'),
+    path('calls/details/<int:pk>/', views.call_details_modal, name='call_details_modal'),
     path('referrals/', views.referrals, name='referrals'),
     path('add/', views.add_referral, name='add_referral'),
     path('referral/edit/<int:pk>/', views.edit_referral, name='edit_referral'),

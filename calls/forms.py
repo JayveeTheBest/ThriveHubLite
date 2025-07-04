@@ -1,5 +1,8 @@
 from django import forms
-from .models import Caller, CallSession, ReferralContact
+from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
+from .models import Caller, CallSession, ReferralContact, SiteConfig, Holiday, ShiftType, MonthlyTeleconsult
+from datetime import datetime
 
 
 class CallerForm(forms.ModelForm):
@@ -76,3 +79,87 @@ class ReferralContactForm(forms.ModelForm):
             'alt_email': forms.EmailInput(attrs={'class': 'form-control'}),
         }
 
+
+class SiteConfigForm(forms.ModelForm):
+    class Meta:
+        model = SiteConfig
+        fields = ['site_name', 'tagline', 'logo', 'favicon', 'primary_color']
+        widgets = {
+            'primary_color': forms.TextInput(attrs={'type': 'color'}),
+            'site_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'site_description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+class UserProfileForm(forms.ModelForm):
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name']  # Optional fields
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+
+class HolidayForm(forms.ModelForm):
+    class Meta:
+        model = Holiday
+        fields = ['label', 'date']
+        widgets = {
+            'Holiday': forms.TextInput(attrs={'class': 'form-control'}),
+            'date': forms.DateInput(attrs={'type': 'date'}),
+        }
+
+        def clean_date(self):
+            date = self.cleaned_data['date']
+            if Holiday.objects.filter(date=date).exists():
+                raise ValidationError("A holiday already exists on this date.")
+            return date
+
+
+class ShiftTypeForm(forms.ModelForm):
+    class Meta:
+        model = ShiftType
+        fields = ['name', 'start_time', 'end_time', 'color', 'is_teleconsult']
+        widgets = {
+            'start_time': forms.TimeInput(attrs={'type': 'time'}),
+            'end_time': forms.TimeInput(attrs={'type': 'time'}),
+            'color': forms.TextInput(attrs={'type': 'color', 'class': 'form-control form-control-color'}),
+        }
+
+
+class AssignTeleconsultForm(forms.ModelForm):
+    responder = forms.ModelChoiceField(
+        queryset=User.objects.all(),
+        widget=forms.Select(attrs={"class": "form-select"}),
+        label="Teleconsult Responder"
+    )
+    month = forms.CharField(widget=forms.TextInput(attrs={
+        'type': 'month',
+        'class': 'form-control',
+    }))
+
+    class Meta:
+        model = MonthlyTeleconsult
+        fields = ['responder', 'month']
+
+    def clean_month(self):
+        month_str = self.cleaned_data['month']  # e.g., '2025-08'
+        try:
+            parsed_date = datetime.strptime(month_str + '-01', '%Y-%m-%d').date()
+            return parsed_date
+        except ValueError:
+            raise forms.ValidationError("Enter a valid month in YYYY-MM format.")
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        instance.year = instance.month.year
+        if commit:
+            instance.save()
+        return instance
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['responder'].label_from_instance = lambda obj: obj.get_full_name() or obj.username
